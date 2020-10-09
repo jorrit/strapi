@@ -86,7 +86,7 @@ const HomePage = ({ global: { strapiVersion }, history: { push } }) => {
                   id: 'notification.version.update.link',
                 },
               },
-              timeout: 100000,
+              blockTransition: true,
               onClose: () => localStorage.setItem('STRAPI_UPDATE_NOTIF', true),
             });
           }

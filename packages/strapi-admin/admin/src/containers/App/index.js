@@ -27,6 +27,7 @@ import PrivateRoute from '../PrivateRoute';
 import Theme from '../Theme';
 import { Content, Wrapper } from './components';
 import { getDataSucceeded } from './actions';
+import NewNotification from '../NewNotification';
 
 function App(props) {
   const getDataRef = useRef();
@@ -103,6 +104,7 @@ function App(props) {
       <Wrapper>
         <GlobalStyle />
         <NotificationProvider />
+        <NewNotification />
         <Content>
           <Switch>
             <Route
