@@ -331,7 +331,7 @@ function ListView({
 
       strapi.notification.toggle({
         type: 'warning',
-        message: { id: errorMessage },
+        message: errorMessage,
       });
       // Close the modal
       onDeleteDataError();
