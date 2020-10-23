@@ -223,6 +223,7 @@ describe('Content Manager End to End', () => {
       });
 
       data.articles[0] = body;
+      console.log('body', body);
 
       expect(body.id);
       expect(body.title).toBe(entry.title);
