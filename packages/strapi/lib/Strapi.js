@@ -25,7 +25,7 @@ const { createCoreStore, coreStoreModel } = require('./services/core-store');
 const createEntityService = require('./services/entity-service');
 const entityValidator = require('./services/entity-validator');
 const createTelemetry = require('./services/metrics');
-const createNotifyUpdater = require('./utils/update-notifier');
+const createUpdateNotifier = require('./utils/update-notifier');
 const ee = require('./utils/ee');
 
 /**
@@ -66,7 +66,7 @@ class Strapi {
 
     this.requireProjectBootstrap();
 
-    createNotifyUpdater(this).notify();
+    createUpdateNotifier(this).notify();
   }
 
   get EE() {
