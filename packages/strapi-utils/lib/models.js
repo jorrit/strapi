@@ -431,7 +431,7 @@ module.exports = {
             const attr = strapi.plugins[current].models[entity].attributes[attribute];
 
             if ((attr.collection || attr.model || '').toLowerCase() === model.toLowerCase()) {
-              acc.push(strapi.plugins[current].models[entity].globalId);
+              acc.push(strapi.plugins[current].models[entity]);
             }
           });
         });
@@ -444,7 +444,7 @@ module.exports = {
           const attr = strapi.models[entity].attributes[attribute];
 
           if ((attr.collection || attr.model || '').toLowerCase() === model.toLowerCase()) {
-            acc.push(strapi.models[entity].globalId);
+            acc.push(strapi.models[entity]);
           }
         });
 
@@ -456,14 +456,14 @@ module.exports = {
           const attr = strapi.components[entity].attributes[attribute];
 
           if ((attr.collection || attr.model || '').toLowerCase() === model.toLowerCase()) {
-            acc.push(strapi.components[entity].globalId);
+            acc.push(strapi.components[entity]);
           }
         });
 
         return acc;
       }, []);
 
-      const models = _.uniq(appModels.concat(pluginsModels).concat(componentModels));
+      const models = _.uniqWith(appModels.concat(pluginsModels, componentModels), _.isEqual);
 
       definition.associations.push({
         alias: key,
