@@ -74,13 +74,14 @@ class WebhookRunner {
 
   run(webhook, event, info = {}) {
     const { url, headers } = webhook;
+    const sanitizedInfo = _.pick(info, ['model', 'entry', 'media']);
 
     return fetch(url, {
       method: 'post',
       body: JSON.stringify({
         event,
         created_at: new Date(),
-        ...info,
+        ...sanitizedInfo,
       }),
       headers: {
         ...this.config.defaultHeaders,

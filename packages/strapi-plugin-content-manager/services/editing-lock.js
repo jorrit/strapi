@@ -4,7 +4,7 @@ const _ = require('lodash');
 const { webhook: webhookUtils } = require('strapi-utils');
 const { TTL, LOCK_PREFIX } = require('./constants');
 
-const { ENTRY_UPDATE } = webhookUtils.webhookEvents;
+const { ENTRY_UPDATE, ENTRY_CREATE } = webhookUtils.webhookEvents;
 
 const getLockKey = (model, entryId) => {
   const { kind } = strapi.getModel(model);
@@ -95,14 +95,21 @@ const updateLastUpdatedAtMetadata = async ({ model, entityId }) => {
 };
 
 const registerLockHook = () => {
-  const updateLastUpdatedAtHook = async ({ model, entry }) => {
+  const updateLastUpdatedAtHook = event => async ({ modelUID, entry }) => {
+    const { kind } = strapi.getModel(modelUID);
+    if (event === ENTRY_CREATE && kind !== 'singleType') {
+      // Handles the usecase where 2 users are on the single type entry and one creates it
+      return;
+    }
+
     await updateLastUpdatedAtMetadata({
-      model,
+      model: modelUID,
       entityId: entry.id,
     });
   };
 
-  strapi.eventHub.on(ENTRY_UPDATE, updateLastUpdatedAtHook);
+  strapi.eventHub.on(ENTRY_UPDATE, updateLastUpdatedAtHook(ENTRY_UPDATE));
+  strapi.eventHub.on(ENTRY_CREATE, updateLastUpdatedAtHook(ENTRY_CREATE));
 };
 
 const validateAndExtendLock = async ({ model, id, lockUID }) => {
@@ -110,8 +117,7 @@ const validateAndExtendLock = async ({ model, id, lockUID }) => {
     throw strapi.errors.badRequest('uid query param is invalid');
   }
 
-  const editingLockService = strapi.plugins['content-manager'].services.editinglock;
-  const lockResult = await editingLockService.extendLock({
+  const lockResult = await extendLock({
     model,
     entityId: id,
     uid: lockUID,
@@ -127,7 +133,6 @@ module.exports = {
   extendLock,
   unlock,
   getLock,
-  updateLastUpdatedAtMetadata,
   registerLockHook,
   validateAndExtendLock,
 };

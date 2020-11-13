@@ -7,10 +7,16 @@ const { createAuthRequest } = require('../../../test/helpers/request');
 let rq;
 let modelsUtils;
 let baseUrl;
+let crudUrl;
+let isSingleType;
 let data;
 
 const getExpiresAtTime = lock => new Date(lock.expiresAt).getTime();
 const getLastUpdatedAtTime = lock => new Date(lock.metadata.lastUpdatedAt).getTime();
+const wait = time =>
+  new Promise(resolve => {
+    setTimeout(resolve, time);
+  });
 
 const productModel = {
   attributes: {
@@ -38,7 +44,7 @@ describe('Editing Lock', () => {
   ])('%p', (kind, modelName) => {
     beforeAll(async () => {
       data = { products: [], locks: [] };
-      const isSingleType = kind === 'Single-Type';
+      isSingleType = kind === 'Single-Type';
       const token = await registerAndLogin();
       rq = createAuthRequest(token);
       modelsUtils = createModelsUtils({ rq });
@@ -50,6 +56,10 @@ describe('Editing Lock', () => {
       }
       await modelsUtils.createContentTypes([productModel]);
 
+      crudUrl = isSingleType
+        ? `/content-manager/single-types/application::${modelName}.${modelName}`
+        : `/content-manager/collection-types/application::${modelName}.${modelName}`;
+
       // create product
       const product = {
         name: 'Product 1',
@@ -57,15 +67,13 @@ describe('Editing Lock', () => {
       };
       const res = await rq({
         method: 'POST',
-        url: `/content-manager/explorer/application::${modelName}.${modelName}`,
+        url: crudUrl,
         body: product,
       });
       data.products.push(res.body);
 
       // define baseUrl
-      baseUrl = isSingleType
-        ? `/content-manager/single-types/application::${modelName}.${modelName}/actions`
-        : `/content-manager/collection-types/application::${modelName}.${modelName}/${data.products[0].id}/actions`;
+      baseUrl = isSingleType ? `${crudUrl}/actions` : `${crudUrl}/${data.products[0].id}/actions`;
     }, 60000);
 
     afterAll(async () => {
@@ -154,9 +162,13 @@ describe('Editing Lock', () => {
       };
       await rq({
         method: 'PUT',
-        url: `/content-manager/explorer/application::${modelName}.${modelName}/${data.products[0].id}`,
+        url: isSingleType ? crudUrl : `${crudUrl}/${data.products[0].id}`,
         body: product,
+        qs: {
+          uid: data.locks[0].uid,
+        },
       });
+      await wait(1000); // let the time for the lock to be automatically updated
 
       const { body } = await rq({
         method: 'GET',
@@ -172,8 +184,13 @@ describe('Editing Lock', () => {
       async action => {
         await rq({
           method: 'POST',
-          url: `/content-manager/explorer/application::${modelName}.${modelName}/${action}/${data.products[0].id}`,
+          url: `${baseUrl}/${action}`,
+          qs: {
+            uid: data.locks[0].uid,
+          },
         });
+
+        await wait(1000); // let the time for the lock to be automatically updated
 
         const { body } = await rq({
           method: 'GET',
@@ -197,13 +214,12 @@ describe('Editing Lock', () => {
       expect(res.body).toMatchObject({
         success: true,
         lockInfo: expect.objectContaining({
-          uid: expect.any(String),
           metadata: data.locks[0].metadata,
           expiresAt: expect.any(String),
         }),
       });
       expect(getExpiresAtTime(res.body.lockInfo) > getExpiresAtTime(data.locks[0])).toBe(true);
-      data.locks[0] = res.body.lockInfo;
+      data.locks[0] = { ...data.locks[0], ...res.body.lockInfo };
     });
 
     test('Cannot extend product (wrong uid)', async () => {
